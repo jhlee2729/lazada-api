@@ -176,7 +176,6 @@ const createOrderDetails = () => {
 
         // let order_ids = '"['+contents.order_ids+']"';
 
-        console.log("order_ids", order_ids);
 
         const getOrderDetails = () => {
 
