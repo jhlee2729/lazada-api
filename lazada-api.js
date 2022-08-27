@@ -168,7 +168,6 @@ const createOrder = () => {
 const createOrderDetails = () => {
     return new Promise((resolve,reject) => {
         
-        // console.log("contents.order_ids",contents.order_ids)
         let app_key = syncData.app_key;
         let access_token = syncData.access_token;
         let timestamp = new Date().getTime().toString();
