@@ -207,6 +207,7 @@ const createOrderDetails = () => {
                 response.data.data.forEach(element => {
                     element.order_items.forEach(i => {
                         insertData.createOrderDetails = insertData.createOrderDetails.concat(i);
+                        insertData.createOrderDetails.reverse();
                     })
                 })
 
@@ -394,6 +395,96 @@ const insertOrder = () => {
     })
 }
 
+const databaseOrderDetailsInsert = (details, callback) => {
+
+    //order_details
+    const tomodel_order_details = {
+        tax_amount: details.tax_amount,
+        reason: details.reason,
+        sla_time_stamp: details.sla_time_stamp,
+        voucher_seller: details.voucher_seller,
+        purchase_order_id: details.purchase_order_id,
+        voucher_code_seller: details.voucher_code_seller,
+        voucher_code: details.voucher_code,
+        package_id: details.package_id,
+        buyer_id: details.buyer_id,
+        variation: details.variation,
+        voucher_code_platform: details.voucher_code_platform,
+        purchase_order_number: details.purchase_order_number,
+        sku: details.sku,
+        order_type: details.order_type,
+        invoice_number: details.invoice_number,
+        cancel_return_initiator: details.cancel_return_initiator,
+        shop_sku: details.shop_sku,
+        is_reroute: details.is_reroute,
+        stage_pay_status: details.stage_pay_status,
+        sku_id: details.sku_id,
+        tracking_code_pre: details.tracking_code_pre,
+        order_item_id: details.order_item_id,
+        shop_id: details.shop_id,
+        order_flag: details.order_flag,
+        is_fbl: details.is_fbl,
+        name: details.name,
+        delivery_option_sof: details.delivery_option_sof,
+        order_id: details.order_id,
+        status: details.status,
+        paid_price: details.paid_price,
+        product_main_image: details.product_main_image,
+        voucher_platform: details.voucher_platform,
+        product_detail_url: details.product_detail_url,
+        warehouse_code: details.warehouse_code,
+        promised_shipping_time: details.promised_shipping_time,
+        shipping_type: details.shipping_type,
+        created_at: details.created_at,
+        voucher_seller_lpi: details.voucher_seller_lpi,
+        shipping_fee_discount_platform: details.shipping_fee_discount_platform,
+        wallet_credits: details.wallet_credits,
+        updated_at: details.updated_at,
+        currency: details.currency,
+        shipping_provider_type: details.shipping_provider_type,
+        shipping_fee_original: details.shipping_fee_original,
+        voucher_platform_lpi: details.voucher_platform_lpi,
+        is_digital: details.is_digital,
+        item_price: details.item_price,
+        shipping_service_cost: details.shipping_service_cost,
+        tracking_code: details.tracking_code,
+        shipping_fee_discount_seller: details.shipping_fee_discount_seller,
+        shipping_amount: details.shipping_amount,
+        reason_detail: details.reason_detail,
+        return_status: details.return_status,
+        shipment_provider: details.shipment_provider,
+        voucher_amount: details.voucher_amount,
+        digital_delivery_info: details.digital_delivery_info,
+        extra_attributes: details.extra_attributes,
+        market: contents.country
+    }
+
+    execute(`INSERT IGNORE INTO app_lazada_order_details SET ?`,
+    (err,rows)=>{
+        if ( err ) {
+            throw err;
+        } else {
+            callback();
+        }
+    }, tomodel_order_details);
+
+}
+
+const insertOrderDetails = () => {
+    return new Promise((resolve,reject) => {
+
+        let loop = 0;
+        
+        const callAPI = () => {
+            insertData.createOrderDetails.length == loop ? 
+            resolve() :
+            databaseOrderDetailsInsert(insertData.createOrderDetails[loop++], callAPI);
+        }
+        databaseOrderDetailsInsert(insertData.createOrderDetails[loop++], callAPI)
+
+    })
+}
+
 const connectionClose = (callback,bool) => {
     return new Promise((resolve,reject) => {
 
@@ -462,6 +553,7 @@ const worker = async (sync,callback,bool) => {
         // console.log("result BBBB",  insertData.createOrderDetails[0]);
 
         await insertOrder();
+        await insertOrderDetails();
 
         await connectionClose(callback,bool);
 
