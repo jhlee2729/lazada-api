@@ -82,11 +82,14 @@ const lastCreateTimeTo = () => {
                         // * after(이상) ... before(미만) 
                         contents.after = after; 
                         contents.before = new Date(Number((time_result) + '000')).toISOString();
+
                         resolve();
 
                     } else {
-                        contents.after = time_result - 86400; // 현재시간으로 부터 24시간 이전 주문 취합(하루)
-                        contents.before = time_result ;
+                        contents.after = new Date(Number((time_result - 86400) + '000')).toISOString(); // 현재시간으로 부터 24시간 이전 주문 취합(하루)
+                        contents.before = new Date(Number((time_result) + '000')).toISOString();
+                        
+                        console.log("contents", contents.after, contents.before )
                         resolve();
 
                     }
@@ -104,6 +107,7 @@ const createOrder = () => {
         let sign_method = "sha256";
         let created_after = contents.after;
         let created_before = contents.before;
+        // let created_before = '2022-08-31T02:55:00.000Z';
         let offset = 0;
         let limit = 100;
     
@@ -207,10 +211,14 @@ const createOrderDetails = () => {
                 response.data.data.forEach(element => {
                     element.order_items.forEach(i => {
                         insertData.createOrderDetails = insertData.createOrderDetails.concat(i);
-                        insertData.createOrderDetails.reverse();
                     })
                 })
 
+                insertData.createOrderDetails.reverse();
+                
+                // console.log("=insertData.createOrderDetails=",insertData.createOrderDetails[0].order_id)
+                // console.log("=insertData.createOrderDetails=",insertData.createOrderDetails[insertData.createOrderDetails.length-2].order_id)
+                // console.log("=insertData.createOrderDetails=",insertData.createOrderDetails[insertData.createOrderDetails.length-1].order_id)
                 callAPI();
 
             }).catch((err) => {
@@ -259,7 +267,8 @@ const updateOrder = () => {
      
             // console.log(`offset: ${offset}, limit :${limit}`)
             
-            let sign_format = `/orders/getaccess_token${access_token}app_key${app_key}UpdatedAfter${update_after}sign_method${sign_method}timestamp${timestamp}`;
+            let sign_format = `/orders/getaccess_token${access_token}app_key${app_key}update_after${update_after}update_before${update_before}sign_method${sign_method}timestamp${timestamp}`;
+            
             sign_format = sign_format.toString();
         
             let sign = signature(sign_format);
@@ -274,13 +283,16 @@ const updateOrder = () => {
                     sign_method:sign_method,
                     sign: sign,
                     update_after:update_after,
+                    update_before:update_before
                 }
             }).then((response) => {
             
+                console.log("response", response.data);
+
+
                 // let count = response.data.data.count;
                 // let count_total = response.data.data.countTotal;
                 // console.log("insertData", insertData.updateOrder.length);
-                console.log("response", response.data);
                 // console.log("response", response.data.data.orders[10]);
 
                 // insertData.updateOrder = insertData.updateOrder.concat(response.data.data.orders);
@@ -485,6 +497,30 @@ const insertOrderDetails = () => {
     })
 }
 
+const timeSave = () => {
+    return new Promise((resolve,reject) => {
+
+        execute(`INSERT INTO app_lazada_api_history (
+                country,
+                time_to,
+                create_count,
+                update_count
+                ) VALUES (
+                    "${contents.country}",
+                    "${contents.before}",
+                    ${insertData.createOrder.length},
+                    ${insertData.createOrder.length}
+                )`,
+                (err,rows)=>{
+                    if ( err ) {
+                        throw err;
+                    } else {
+                        resolve();
+                    }
+                }, {});
+    })
+}
+
 const connectionClose = (callback,bool) => {
     return new Promise((resolve,reject) => {
 
@@ -550,10 +586,11 @@ const worker = async (sync,callback,bool) => {
 
         console.log("insertData.createOrder",  insertData.createOrder.length);
         console.log("createOrderDetails",  insertData.createOrderDetails.length);
-        // console.log("result BBBB",  insertData.createOrderDetails[0]);
 
-        await insertOrder();
-        await insertOrderDetails();
+        insertData.createOrder.length !=0 && await insertOrder();
+        insertData.createOrder.length !=0 && await insertOrderDetails();
+
+        await timeSave();
 
         await connectionClose(callback,bool);
 
