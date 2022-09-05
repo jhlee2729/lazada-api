@@ -114,6 +114,7 @@ const createOrder = () => {
      
             // console.log(`offset: ${offset}, limit :${limit}`)
             let sign_format = `/orders/getaccess_token${access_token}app_key${app_key}created_after${created_after}created_before${created_before}limit${limit}offset${offset}sign_method${sign_method}timestamp${timestamp}`;
+           
             sign_format = sign_format.toString();
         
             let sign = signature(sign_format);
@@ -132,8 +133,11 @@ const createOrder = () => {
                     limit:limit,
                     offset:offset
                 }
+
             }).then((response) => {
-            
+                
+                console.log("======createOrder Response Length===========", response.data.data.orders.length);
+
                 let count = response.data.data.count;
                 let count_total = response.data.data.countTotal;
 
@@ -145,11 +149,15 @@ const createOrder = () => {
 
                 console.log("count", count);
                 console.log("count_total", count_total);
-                console.log("insertData", insertData.createOrder.length);
+                // console.log("insertData", insertData.createOrder.length);
 
-                // console.log("create_order_ids",  contents.order_ids);
-                // console.log("orders", response.data.data);
-                
+                // if ( response.data.data.orders.length > 0) {
+                //     response.data.data.orders.map(i => { 
+                //         console.log(i.order_number);
+                //         console.log(i.statuses);
+                //     });
+                // }
+
                 if ( count_total-count !== offset) {
                     offset += limit;
                     getOrder();
@@ -185,7 +193,6 @@ const createOrderDetails = () => {
         const getOrderDetails = (start, end) => {
 
             let order_ids = JSON.stringify(contents.order_ids.slice(start, end));
-            // console.log(`offset : ${offset}, limit : ${limit}, start : ${start}, end : ${end} `)
 
             let sign_format = `/orders/items/getaccess_token${access_token}app_key${app_key}order_ids${order_ids}sign_method${sign_method}timestamp${timestamp}`;
             sign_format = sign_format.toString();
@@ -205,21 +212,17 @@ const createOrderDetails = () => {
                 }
             }).then((response) => {
 
-                console.log("================Response Length===========", response.data.data.length);
-                // console.log("================data===========", response.data.data);
-                // console.log("================data===========", response.data.data[0].order_items);
-                
+                // console.log("====== createOrderDetails Length===========", response.data.data.order_items);
                 response.data.data.forEach(element => {
                     element.order_items.forEach(i => {
                         insertData.createOrderDetails = insertData.createOrderDetails.concat(i);
                     })
                 })
+                
+                console.log("================ createOrderDetails Length===========", insertData.createOrderDetails.length);
+                // console.log("================ createOrderDetails Length===========", insertData.createOrderDetails);
 
                 insertData.createOrderDetails.reverse();
-                
-                // console.log("=insertData.createOrderDetails=",insertData.createOrderDetails[0].order_id)
-                // console.log("=insertData.createOrderDetails=",insertData.createOrderDetails[insertData.createOrderDetails.length-2].order_id)
-                // console.log("=insertData.createOrderDetails=",insertData.createOrderDetails[insertData.createOrderDetails.length-1].order_id)
                 callAPI();
 
             }).catch((err) => {
@@ -239,17 +242,15 @@ const createOrderDetails = () => {
             } else {
                 resolve(true)
             }
-
         }
-
         getOrderDetails(start,end);
-
     });
 }
 
 const updateOrder = () => {
     return new Promise((resolve,reject) => {
 
+        contents.order_ids = []; // order_ids 초기화
         let app_key = syncData.app_key;
         let access_token = syncData.access_token;
         let timestamp = new Date().getTime().toString();
@@ -258,12 +259,9 @@ const updateOrder = () => {
         let update_before = contents.before;
         let offset = 0;
         let limit = 100;
-        // let status = "unpaid"
-        contents.order_ids = []; // order_ids 초기화
 
         const getOrder = () => {
      
-            // console.log(`offset: ${offset}, limit :${limit}`)
             let sign_format = `/orders/getaccess_token${access_token}app_key${app_key}limit${limit}offset${offset}sign_method${sign_method}timestamp${timestamp}update_after${update_after}update_before${update_before}`;
             sign_format = sign_format.toString();
 
@@ -281,24 +279,34 @@ const updateOrder = () => {
                     update_after: update_after,
                     update_before : update_before,
                     limit:limit,
-                    offset:offset
+                    offset:offset,
                 }
             }).then((response) => {
+                
+                // console.log(response.data);
+                console.log("************updateOrder RESPONSE length*******************", response.data.data.orders.length)
 
                 let count = response.data.data.count;
                 let count_total = response.data.data.countTotal;
-
-                console.log(`count: ${count}, count_total: ${count_total}`)
-            
+                
+                console.log(`count: ${count}, count_total: ${count_total}`);
+                
                 insertData.updateOrder = insertData.updateOrder.concat(response.data.data.orders);
-
+                
                 response.data.data.orders.forEach(element => {
                     contents.order_ids.push(element.order_id);
                 });
-
-                console.log("count", count);
-                console.log("count_total", count_total);
+                
+                console.log("update count", count);
+                console.log("update count_total", count_total);
                 console.log("updateOrder", insertData.updateOrder.length);
+                
+                // if ( response.data.data.orders.length > 0) {
+                //     response.data.data.orders.map(i => {
+                //         console.log(i.order_number);
+                //         console.log(i.statuses);
+                //     });
+                // }
 
                 if ( count_total-count !== offset) {
                     offset += limit;
@@ -754,6 +762,149 @@ const editOrder = () => {
     });
 }
 
+const databaseOrderDetailsEdit = (details, callback) => {
+    return new Promise((resolve,reject) => {
+        //order Details
+        execute(`INSERT INTO app_lazada_order_details
+        (
+            tax_amount,
+            reason,
+            sla_time_stamp,
+            voucher_seller,
+            purchase_order_id,
+            voucher_code_seller,
+            voucher_code
+            package_id,
+            buyer_id,
+            variation,
+            voucher_code_platform,
+            purchase_order_number,
+            sku,
+            order_type,
+            invoice_number,
+            cancel_return_initiator,
+            shop_sku,
+            is_reroute,
+            stage_pay_status,
+            sku_id,
+            tracking_code_pre,
+            order_item_id,
+            shop_id,
+            order_flag,
+            is_fbl,
+            name,
+            delivery_option_sof,
+            order_id,
+            status,
+            paid_price,
+            product_main_image,
+            voucher_platform,
+            product_detail_url,
+            warehouse_code,
+            promised_shipping_time,
+            shipping_type,
+            created_at,
+            voucher_seller_lpi,
+            shipping_fee_discount_platform,
+            wallet_credits,
+            updated_at,
+            currency,
+            shipping_provider_type,
+            shipping_fee_original,
+            voucher_platform_lpi,
+            is_digital,
+            item_price,
+            shipping_service_cost,
+            tracking_code,
+            shipping_fee_discount_seller,
+            shipping_amount,
+            reason_detail,
+            return_status,
+            shipment_provider,
+            voucher_amount,
+            digital_delivery_info,
+            extra_attributes,
+            market
+        )
+        VALUES
+        (
+            details.tax_amount,
+            details.reason,
+            details.sla_time_stamp,
+            details.voucher_seller,
+            details.purchase_order_id,
+            details.voucher_code_seller,
+            details.voucher_code,
+            details.package_id,
+            details.buyer_id,
+            details.variation,
+            details.voucher_code_platform,
+            details.purchase_order_number,
+            details.sku,
+            details.order_type,
+            details.invoice_number,
+            details.cancel_return_initiator,
+            details.shop_sku,
+            details.is_reroute,
+            details.stage_pay_status,
+            details.sku_id,
+            details.tracking_code_pre,
+            details.order_item_id,
+            details.shop_id,
+            flag: details.order_flag,
+            details.is_fbl,
+            details.name,
+            details.delivery_option_sof,
+            details.order_id,
+            : details.status,
+            rice: details.paid_price,
+            t_main_image: details.product_main_image,
+            r_platform: details.voucher_platform,
+            t_detail_url: details.product_detail_url,
+            use_code: details.warehouse_code,
+            ed_shipping_time: details.promised_shipping_time,
+            ng_type: details.shipping_type,
+            d_at: details.created_at,
+            r_seller_lpi: details.voucher_seller_lpi,
+            ng_fee_discount_platform: details.shipping_fee_discount_platform,
+            _credits: details.wallet_credits,
+            d_at: details.updated_at,
+            cy: details.currency,
+            ng_provider_type: details.shipping_provider_type,
+            ng_fee_original: details.shipping_fee_original,
+            r_platform_lpi: details.voucher_platform_lpi,
+            ital: details.is_digital,
+            rice: details.item_price,
+            ng_service_cost: details.shipping_service_cost,
+            ng_code: details.tracking_code,
+            ng_fee_discount_seller: details.shipping_fee_discount_seller,
+            ng_amount: details.shipping_amount,
+            _detail: details.reason_detail,
+            _status: details.return_status,
+            nt_provider: details.shipment_provider,
+            r_amount: details.voucher_amount,
+            l_delivery_info: details.digital_delivery_info,
+            attributes: details.extra_attributes,
+            : contents.country
+        )
+        `)
+    })
+}
+
+const editOrderDetails = () => {
+    return new Promise((resolve,reject) => {
+
+        let loop = 0;
+        const callAPI = () => {
+
+            insertData.updateOrderDetails.length == loop ? 
+                resolve() :
+                databaseOrderDetailsEdit(insertData.updateOrderDetails[loop++],callAPI);
+        }
+        databaseOrderDetailsEdit(insertData.updateOrderDetails[loop++],callAPI);
+    });
+}
+
 const timeSave = () => {
     return new Promise((resolve,reject) => {
 
@@ -766,7 +917,7 @@ const timeSave = () => {
                     "${contents.country}",
                     "${contents.before}",
                     ${insertData.createOrder.length},
-                    ${insertData.createOrder.length}
+                    ${insertData.updateOrder.length}
                 )`,
                 (err,rows)=>{
                     if ( err ) {
@@ -793,7 +944,7 @@ const connectionClose = (callback,bool) => {
     });
 }
 
-const worker = async (sync,callback,bool) => { 
+const worker = async (sync,callback,bool) => {
 
     try {
         
@@ -855,17 +1006,13 @@ const worker = async (sync,callback,bool) => {
             await connectionClose(callback,bool);
             return;
         }
-        // console.log("createOrder",  insertData.createOrder.length);
-        // console.log("createOrderDetails",  insertData.createOrderDetails.length);
-        // console.log("updateOrder",  insertData.updateOrder.length);
-        // console.log("updateOrderDetails",  insertData.updateOrderDetails.length);
-
+     
         insertData.createOrder.length !=0 && await insertOrder();
-        insertData.createOrder.length !=0 && await insertOrderDetails();
+        insertData.createOrderDetails.length !=0 && await insertOrderDetails();
         insertData.updateOrder.length !=0 && await editOrder();
-        // insertData.updateOrder.length !=0 && await editOrderDetails();
+        insertData.updateOrderDetails.length !=0 && await editOrderDetails();
 
-        // await timeSave();
+        await timeSave();
 
         await connectionClose(callback,bool);
 
@@ -875,3 +1022,4 @@ const worker = async (sync,callback,bool) => {
 }
 
 module.exports = worker;
+
