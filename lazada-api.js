@@ -82,14 +82,11 @@ const lastCreateTimeTo = () => {
                         // * after(이상) ... before(미만) 
                         contents.after = after; 
                         contents.before = new Date(Number((time_result) + '000')).toISOString();
-
                         resolve();
 
                     } else {
-                        contents.after = new Date(Number((time_result - 86400) + '000')).toISOString(); // 현재시간으로 부터 24시간 이전 주문 취합(하루)
+                        contents.after = new Date(Number((time_result - 86400) + '000')).toISOString(); // 현재 시점에서 24시간 이전 주문부터 취합
                         contents.before = new Date(Number((time_result) + '000')).toISOString();
-                        
-                        console.log("contents", contents.after, contents.before )
                         resolve();
 
                     }
@@ -112,9 +109,7 @@ const createOrder = () => {
     
         const getOrder = () => {
      
-            // console.log(`offset: ${offset}, limit :${limit}`)
             let sign_format = `/orders/getaccess_token${access_token}app_key${app_key}created_after${created_after}created_before${created_before}limit${limit}offset${offset}sign_method${sign_method}timestamp${timestamp}`;
-           
             sign_format = sign_format.toString();
         
             let sign = signature(sign_format);
@@ -136,7 +131,7 @@ const createOrder = () => {
 
             }).then((response) => {
                 
-                console.log("======createOrder Response Length===========", response.data.data.orders.length);
+                // console.log("======createOrder Response Length===========", response.data.data.orders.length);
 
                 let count = response.data.data.count;
                 let count_total = response.data.data.countTotal;
@@ -147,13 +142,12 @@ const createOrder = () => {
                     contents.order_ids.push(element.order_id);
                 })
 
-                console.log("count", count);
-                console.log("count_total", count_total);
-                // console.log("insertData", insertData.createOrder.length);
+                // console.log("count", count);
+                // console.log("count_total", count_total);
 
                 // if ( response.data.data.orders.length > 0) {
                 //     response.data.data.orders.map(i => { 
-                //         console.log(i.order_number);
+                //         console.log("create_order 수정",i.order_number);
                 //         console.log(i.statuses);
                 //     });
                 // }
@@ -167,7 +161,7 @@ const createOrder = () => {
                 }
                 
             }).catch((err) => {
-                console.log("err", err);
+                console.log("createOrder 에러", err);
                 resolve(false);
             })
         }
@@ -184,7 +178,6 @@ const createOrderDetails = () => {
         let timestamp = new Date().getTime().toString();
         let sign_method = "sha256";
         let order_count = contents.order_ids.length;
-
         let offset = 0;
         let limit = 100;
         let start = 0;
@@ -193,7 +186,6 @@ const createOrderDetails = () => {
         const getOrderDetails = (start, end) => {
 
             let order_ids = JSON.stringify(contents.order_ids.slice(start, end));
-
             let sign_format = `/orders/items/getaccess_token${access_token}app_key${app_key}order_ids${order_ids}sign_method${sign_method}timestamp${timestamp}`;
             sign_format = sign_format.toString();
 
@@ -212,21 +204,19 @@ const createOrderDetails = () => {
                 }
             }).then((response) => {
 
-                // console.log("====== createOrderDetails Length===========", response.data.data.order_items);
                 response.data.data.forEach(element => {
                     element.order_items.forEach(i => {
                         insertData.createOrderDetails = insertData.createOrderDetails.concat(i);
                     })
                 })
                 
-                console.log("================ createOrderDetails Length===========", insertData.createOrderDetails.length);
-                // console.log("================ createOrderDetails Length===========", insertData.createOrderDetails);
+                // console.log("================ createOrderDetails Length===========", insertData.createOrderDetails.length);
 
                 insertData.createOrderDetails.reverse();
                 callAPI();
 
             }).catch((err) => {
-                console.log("err", err);
+                console.log("createOrderDetails 에러", err);
                 resolve(false);
             })
         }
@@ -238,9 +228,9 @@ const createOrderDetails = () => {
             end = end + limit;
 
             if ( order_count > offset ) {
-                getOrderDetails(start, end)
+                getOrderDetails(start, end);
             } else {
-                resolve(true)
+                resolve(true);
             }
         }
         getOrderDetails(start,end);
@@ -284,12 +274,12 @@ const updateOrder = () => {
             }).then((response) => {
                 
                 // console.log(response.data);
-                console.log("************updateOrder RESPONSE length*******************", response.data.data.orders.length)
+                // console.log("************updateOrder RESPONSE length*******************", response.data.data.orders.length)
 
                 let count = response.data.data.count;
                 let count_total = response.data.data.countTotal;
                 
-                console.log(`count: ${count}, count_total: ${count_total}`);
+                // console.log(`count: ${count}, count_total: ${count_total}`);
                 
                 insertData.updateOrder = insertData.updateOrder.concat(response.data.data.orders);
                 
@@ -297,13 +287,13 @@ const updateOrder = () => {
                     contents.order_ids.push(element.order_id);
                 });
                 
-                console.log("update count", count);
-                console.log("update count_total", count_total);
-                console.log("updateOrder", insertData.updateOrder.length);
+                // console.log("update count", count);
+                // console.log("update count_total", count_total);
+                // console.log("updateOrder", insertData.updateOrder.length);
                 
                 // if ( response.data.data.orders.length > 0) {
                 //     response.data.data.orders.map(i => {
-                //         console.log(i.order_number);
+                //         console.log("updateOrder 수정",i.order_number);
                 //         console.log(i.statuses);
                 //     });
                 // }
@@ -317,11 +307,10 @@ const updateOrder = () => {
                 }
                 
             }).catch((err) => {
-                console.log("err", err);
+                console.log("updateOrder 에러", err);
                 resolve(false);
             })
         }
-        
         getOrder();
     })
 }
@@ -362,7 +351,7 @@ const updateOrderDetails = () => {
                 }
             }).then((response) => {
 
-                console.log("================Response Length===========", response.data.data.length);
+                // console.log("================Response Length===========", response.data.data.length);
                 response.data.data.forEach(element => {
                     element.order_items.forEach(i => {
                         insertData.updateOrderDetails = insertData.updateOrderDetails.concat(i);
@@ -370,12 +359,11 @@ const updateOrderDetails = () => {
                 })
 
                 insertData.updateOrderDetails.reverse();
-                console.log("====updateOrderDetails====", insertData.updateOrderDetails.length);
-                
+                // console.log("====updateOrderDetails====", insertData.updateOrderDetails.length);
                 callAPI();
 
             }).catch((err) => {
-                console.log("err", err);
+                console.log("updateOrderDetails 에러", err);
                 resolve(false);
             })
         }
@@ -387,9 +375,9 @@ const updateOrderDetails = () => {
             end = end + limit;
 
             if ( order_count > offset ) {
-                getOrderDetails(start, end)
+                getOrderDetails(start, end);
             } else {
-                resolve(true)
+                resolve(true);
             }
 
         }
@@ -425,7 +413,7 @@ const databaseOrderInsert = (order, callback) => {
         tax_code: order.tax_code,
         items_count: Number(order.items_count),
         delivery_info: order.delivery_info,
-        statuses: order.statuses[0],
+        statuses: order.statuses.join(),
         address_billing_country: order.address_billing.country,
         address_billing_address3: order.address_billing.address3,
         address_billing_phone: order.address_billing.phone,
@@ -656,7 +644,7 @@ const databaseOrderEdit = (order, callback) => {
         "${order.tax_code}",
         ${Number(order.items_count)},
         "${order.delivery_info}",
-        "${order.statuses[0]}",
+        "${order.statuses.join()}",
         "${order.address_billing.country}",
         "${order.address_billing.address3}",
         "${order.address_billing.phone}",
@@ -709,7 +697,7 @@ const databaseOrderEdit = (order, callback) => {
         tax_code = "${order.tax_code}",
         items_count = ${Number(order.items_count)},
         delivery_info = "${order.delivery_info}",
-        statuses = "${order.statuses[0]}",
+        statuses = "${order.statuses.join()}",
         address_billing_country = "${order.address_billing.country}",
         address_billing_address3 = "${order.address_billing.address3}",
         address_billing_phone = "${order.address_billing.phone}",
@@ -764,8 +752,6 @@ const editOrder = () => {
 
 const databaseOrderDetailsEdit = (details, callback) => {
 
-    // console.log("details", details);
-    
     //order Details
     execute(`INSERT INTO app_lazada_order_details
         (
@@ -1003,7 +989,7 @@ const connectionClose = (callback,bool) => {
         console.log(new Date() + ' 종료');
         console.log('=====================================================================');
         console.timeEnd();
-        // console.log(bool);
+
         if ( bool ) {
             closing();
         }
@@ -1080,7 +1066,6 @@ const worker = async (sync,callback,bool) => {
         insertData.updateOrderDetails.length !=0 && await editOrderDetails();
 
         await timeSave();
-
         await connectionClose(callback,bool);
 
     } catch(e){
