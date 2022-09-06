@@ -107,12 +107,14 @@ const refreshAccessToken = () => {
                     refresh_token="${refresh_token}",
                     refresh_token_expires_in="${refresh_token_expires_in}",
                     refresh_token_expires_in_time="${refresh_token_expires_in_time}"
-                    WHERE is_order=1`,
+                    `,
                     (err,rows) => {
                         if (err) {
                             throw err;
                         } else {
                             resolve();
+                            console.log(new Date() + '종료');
+                            closing();
                         }
             })
         }).catch((err) => {
@@ -128,7 +130,6 @@ const worker = async() => {
         console.log(new Date() + '시작');
         await getLazadaSync();
         await refreshAccessToken();
-        console.log(new Date() + '종료');
 
     } catch(e){
         console.log(e)
