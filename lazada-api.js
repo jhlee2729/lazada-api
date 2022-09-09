@@ -1,6 +1,7 @@
 const config = require('../config');
 const env = require('./env').env;
 const pool = require('./connection-pool').createPool(config[env].database);
+const error_hook = require('./slack-lazada-order');
 const dateformat = require('dateformat');
 const crypto = require('crypto');
 const axios = require('axios');
@@ -41,7 +42,9 @@ const execute = (sql,callback,data = {})=>{
             connection.release();
 
             if ( err ) {
-                throw err;
+                error_hook(contents.country,err,(e,res) => {
+                    throw err;
+                })
             } else {
                 callback(err, rows);
             }
@@ -61,6 +64,7 @@ const signature = (sign_format) => {
 
 const lastCreateTimeTo = () => {
     return new Promise((resolve,reject) => {
+        
         execute(`SELECT time_to 
             FROM app_lazada_api_history 
             WHERE country="${contents.country}" ORDER BY api_history_id DESC LIMIT 0,1`, 
@@ -161,8 +165,10 @@ const createOrder = () => {
                 }
                 
             }).catch((err) => {
-                console.log("createOrder 에러", err);
-                resolve(false);
+                error_hook(contents.country,err,(e,res) => {
+                    console.log("createOrder 에러", err);
+                    resolve(false);
+                });
             })
         }
         
@@ -216,8 +222,10 @@ const createOrderDetails = () => {
                 callAPI();
 
             }).catch((err) => {
-                console.log("createOrderDetails 에러", err);
-                resolve(false);
+                error_hook(contents.country,err,(e,res) => {
+                    console.log("createOrderDetails 에러", err);
+                    resolve(false);
+                });
             })
         }
 
@@ -307,8 +315,10 @@ const updateOrder = () => {
                 }
                 
             }).catch((err) => {
-                console.log("updateOrder 에러", err);
-                resolve(false);
+                error_hook(contents.country,err,(e,res) => {
+                    console.log("updateOrder 에러", err);
+                    resolve(false);
+                });
             })
         }
         getOrder();
@@ -363,8 +373,10 @@ const updateOrderDetails = () => {
                 callAPI();
 
             }).catch((err) => {
-                console.log("updateOrderDetails 에러", err);
-                resolve(false);
+                error_hook(contents.country,err,(e,res) => {
+                    console.log("updateOrderDetails 에러", err);
+                    resolve(false);
+                });
             })
         }
 
@@ -448,7 +460,9 @@ const databaseOrderInsert = (order, callback) => {
     execute(`INSERT IGNORE INTO app_lazada_order SET ?`,
     (err,rows)=>{
         if ( err ) {
-            throw err;
+            error_hook(contents.country,err,(e,res) => {
+                throw err;
+            });
         } else {
             callback();
         }
@@ -537,7 +551,9 @@ const databaseOrderDetailsInsert = (details, callback) => {
     execute(`INSERT IGNORE INTO app_lazada_order_details SET ?`,
     (err,rows)=>{
         if ( err ) {
-            throw err;
+            error_hook(contents.country,err,(e,res) => {
+                throw err;
+            });
         } else {
             callback();
         }
@@ -729,7 +745,9 @@ const databaseOrderEdit = (order, callback) => {
 
     (err,rows)=>{
         if ( err ) {
-            throw err;
+            error_hook(contents.country,err,(e,res) => {
+                throw err;
+            });
         } else {
             callback();
         }
@@ -936,7 +954,9 @@ const databaseOrderDetailsEdit = (details, callback) => {
 
     (err,rows)=>{
         if ( err ) {
-            throw err;
+            error_hook(contents.country,err,(e,res) => {
+                throw err;
+            });
         } else {
             callback();
         }
@@ -974,7 +994,9 @@ const timeSave = () => {
                 )`,
                 (err,rows)=>{
                     if ( err ) {
-                        throw err;
+                        error_hook(contents.country,err,(e,res) => {
+                            throw err;
+                        });
                     } else {
                         resolve();
                     }
@@ -1021,10 +1043,9 @@ const worker = async (sync,callback,bool) => {
         syncData.refresh_token = sync.refresh_token;
         syncData.refresh_token_expires_in = sync.refresh_token_expires_in;
         syncData.refresh_token_expires_in_time = sync.refresh_token_expires_in_time;
-        
         contents.market = sync.market;
         contents.country = sync.country;
-        
+
         await lastCreateTimeTo();
         const success1 = await createOrder();
         let success_details_1 = true;
