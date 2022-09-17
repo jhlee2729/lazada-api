@@ -43,6 +43,7 @@ const execute = (sql,callback,data = {})=>{
 
             if ( err ) {
                 error_hook(contents.country,err,(e,res) => {
+                    console.log("execute", err);
                     throw err;
                 })
             } else {
@@ -461,6 +462,7 @@ const databaseOrderInsert = (order, callback) => {
     (err,rows)=>{
         if ( err ) {
             error_hook(contents.country,err,(e,res) => {
+                console.log("OrderInsert", err)
                 throw err;
             });
         } else {
@@ -552,6 +554,7 @@ const databaseOrderDetailsInsert = (details, callback) => {
     (err,rows)=>{
         if ( err ) {
             error_hook(contents.country,err,(e,res) => {
+                console.log("OrderDetailsInsert", err)
                 throw err;
             });
         } else {
@@ -746,6 +749,7 @@ const databaseOrderEdit = (order, callback) => {
     (err,rows)=>{
         if ( err ) {
             error_hook(contents.country,err,(e,res) => {
+                console.log("OrderEditInsert", err)
                 throw err;
             });
         } else {
@@ -955,6 +959,7 @@ const databaseOrderDetailsEdit = (details, callback) => {
     (err,rows)=>{
         if ( err ) {
             error_hook(contents.country,err,(e,res) => {
+                console.log("OrderEditDetailsInsert", err)
                 throw err;
             });
         } else {
@@ -995,6 +1000,7 @@ const timeSave = () => {
                 (err,rows)=>{
                     if ( err ) {
                         error_hook(contents.country,err,(e,res) => {
+                            console.log("timeSave", err)
                             throw err;
                         });
                     } else {
