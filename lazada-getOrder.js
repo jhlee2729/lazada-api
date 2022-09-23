@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 
-const signature = () => {
+const getOrder = () => {
     
     const app_key = "111424";
     const app_secret = "nDF06KuA5wpGuhTqHKePvOUjcVzEHuGa";
@@ -38,4 +38,4 @@ const signature = () => {
     })
 }
 
-signature();
+getOrder();
