@@ -102,23 +102,18 @@ const refreshAccessToken = (syncData, callback, bool) => {
     
         }).then((response) => {
 
-            console.log(`app_key : ${app_key}, acess_token ${response.data.expires_in}, refresh_expires_in : ${response.data.refresh_expires_in}`);
+            console.log(`app_key: ${app_key}, access_token: ${access_token}, access_expires_in: ${response.data.expires_in}, refresh_token: ${refresh_token}, refresh_expires_in: ${response.data.refresh_expires_in}`);
 
             let access_token = response.data.access_token;
             let refresh_token = response.data.refresh_token;
             let now = new Date().getTime();
 
-            //access_token 604800
             let expires_in = response.data.expires_in;
             let expires_in_time = dateformat(now + (expires_in * 1000),'yyyy-mm-dd HH:MM:ss'); // ms * 1000 = sec
             
-            //refresh_token 2592000
             let refresh_token_expires_in = response.data.refresh_expires_in;
             let refresh_token_expires_in_time = dateformat(now + (refresh_token_expires_in * 1000),'yyyy-mm-dd HH:MM:ss');
 
-            // console.log(`====RESPONSE=== ${expires_in}, ${refresh_token_expires_in}========`);
-            // console.log(`========== ${expires_in_time}, ${refresh_token_expires_in_time}========`);
-            
             execute(`UPDATE app_lazada_sync
                     SET
                     access_token="${access_token}",
