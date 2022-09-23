@@ -137,6 +137,7 @@ const createOrder = () => {
             }).then((response) => {
                 
                 // console.log("======createOrder Response Length===========", response.data.data.orders.length);
+                console.log("======response Data=======", contents,response.data);
 
                 let count = response.data.data.count;
                 let count_total = response.data.data.countTotal;
@@ -1101,4 +1102,3 @@ const worker = async (sync,callback,bool) => {
 }
 
 module.exports = worker;
-
