@@ -1,6 +1,7 @@
 //암호화, 복호화
 const aes256 = require('aes256');
-let key = 'Test'; //config로
+const config = require('../config');
+const key = config.aes_key;
 
 const encrypt = (text) => {
 
