@@ -2,10 +2,8 @@ const config = require('../config');
 const env = require('./env').env;
 const pool = require('./connection-pool').createPool(config[env].database);
 const error_hook = require('./slack-lazada-order');
-const dateformat = require('dateformat');
 const crypto = require('crypto');
 const axios = require('axios');
-const { encrypt, decrypt } = require('./aes256');
 
 const syncData = { 
     app_key: '',
@@ -76,22 +74,21 @@ const lastCreateTimeTo = () => {
                     throw err;
                 } else {
 
-                    let now = new Date(); // 현재시간
-                    let time = now.getTime().toString(); // 현재 시간을 밀리초로 환산 후 string으로 타입 변경
-                    let time_result = Number(time.substr(0, time.length - 3)); // 밀리초 -> 초
+                    let now = new Date();
+                    let time = now.getTime().toString();
+                    let time_result = Number(time.substr(0, time.length - 3));
 
                     if ( rows.length >= 1 ) {
 
-                        // let after = new Date(rows[0].time_to).toISOString(); // 밀리초로 환산 후 ISO 8601 date format
-                        let after = rows[0].time_to; // 시작시간(DB 최근 time_to 값)
+                        let after = rows[0].time_to;
 
-                        // * after(이상) ... before(미만) 
+                        // after(이상) ... before(미만) 
                         contents.after = after; 
                         contents.before = new Date(Number((time_result) + '000')).toISOString();
                         resolve();
 
                     } else {
-                        contents.after = new Date(Number((time_result - 86400) + '000')).toISOString(); // 현재 시점에서 24시간 이전 주문부터 취합
+                        contents.after = new Date(Number((time_result - 86400) + '000')).toISOString(); // DB 값이 없을 경우, 현재 시점에서 24시간 이전 주문부터 취합
                         contents.before = new Date(Number((time_result) + '000')).toISOString();
                         resolve();
 
@@ -137,9 +134,6 @@ const createOrder = () => {
 
             }).then((response) => {
                 
-                // console.log("======createOrder Response Length===========", response.data.data.orders.length);
-                console.log("======response Data=======", contents,response.data);
-
                 let count = response.data.data.count;
                 let count_total = response.data.data.countTotal;
 
@@ -148,16 +142,6 @@ const createOrder = () => {
                 response.data.data.orders.forEach(element => {
                     contents.order_ids.push(element.order_id);
                 })
-
-                // console.log("count", count);
-                // console.log("count_total", count_total);
-
-                // if ( response.data.data.orders.length > 0) {
-                //     response.data.data.orders.map(i => { 
-                //         console.log("create_order 수정",i.order_number);
-                //         console.log(i.statuses);
-                //     });
-                // }
 
                 if ( count_total-count !== offset) {
                     offset += limit;
@@ -219,8 +203,6 @@ const createOrderDetails = () => {
                     })
                 })
                 
-                // console.log("================ createOrderDetails Length===========", insertData.createOrderDetails.length);
-
                 insertData.createOrderDetails.reverse();
                 callAPI();
 
@@ -284,30 +266,14 @@ const updateOrder = () => {
                 }
             }).then((response) => {
                 
-                // console.log(response.data);
-                // console.log("************updateOrder RESPONSE length*******************", response.data.data.orders.length)
-
                 let count = response.data.data.count;
                 let count_total = response.data.data.countTotal;
-                
-                // console.log(`count: ${count}, count_total: ${count_total}`);
                 
                 insertData.updateOrder = insertData.updateOrder.concat(response.data.data.orders);
                 
                 response.data.data.orders.forEach(element => {
                     contents.order_ids.push(element.order_id);
                 });
-                
-                // console.log("update count", count);
-                // console.log("update count_total", count_total);
-                // console.log("updateOrder", insertData.updateOrder.length);
-                
-                // if ( response.data.data.orders.length > 0) {
-                //     response.data.data.orders.map(i => {
-                //         console.log("updateOrder 수정",i.order_number);
-                //         console.log(i.statuses);
-                //     });
-                // }
 
                 if ( count_total-count !== offset) {
                     offset += limit;
@@ -364,7 +330,6 @@ const updateOrderDetails = () => {
                 }
             }).then((response) => {
 
-                // console.log("================Response Length===========", response.data.data.length);
                 response.data.data.forEach(element => {
                     element.order_items.forEach(i => {
                         insertData.updateOrderDetails = insertData.updateOrderDetails.concat(i);
@@ -372,7 +337,6 @@ const updateOrderDetails = () => {
                 })
 
                 insertData.updateOrderDetails.reverse();
-                // console.log("====updateOrderDetails====", insertData.updateOrderDetails.length);
                 callAPI();
 
             }).catch((err) => {
@@ -421,7 +385,7 @@ const databaseOrderInsert = (order, callback) => {
         national_registration_number: order.national_registration_number,
         shipping_fee_original: Number(order.shipping_fee_original),
         payment_method: order.payment_method,
-        customer_first_name: order.customer_first_name !== '' ? encrypt(order.customer_first_name) : '',
+        customer_first_name: order.customer_first_name,
         shipping_fee_discount_seller: order.shipping_fee_discount_seller,
         shipping_fee: Number(order.shipping_fee),
         branch_number: order.branch_number,
@@ -430,32 +394,32 @@ const databaseOrderInsert = (order, callback) => {
         delivery_info: order.delivery_info,
         statuses: order.statuses.join(),
         address_billing_country: order.address_billing.country,
-        address_billing_address3: order.address_billing.address3 !== '' ? encrypt(order.address_billing.address3) : '',
-        address_billing_phone: order.address_billing.phone !== '' ? encrypt(order.address_billing.phone) : '',
-        address_billing_address2: order.address_billing.address2 !== '' ? encrypt(order.address_billing.address2) : '',
+        address_billing_address3: order.address_billing.address3,
+        address_billing_phone: order.address_billing.phone,
+        address_billing_address2: order.address_billing.address2,
         address_billing_city: order.address_billing.city,
-        address_billing_address1: order.address_billing.address1 !== '' ? encrypt(order.address_billing.address1) : '',
+        address_billing_address1: order.address_billing.address1,
         address_billing_post_code: order.address_billing.post_code,
-        address_billing_phone2: order.address_billing.phone2 !== '' ? encrypt(order.address_billing.phone2) : '',
-        address_billing_last_name: order.address_billing.last_name !== '' ? encrypt(order.address_billing.last_name) : '',
-        address_billing_address5: order.address_billing.address5 !== '' ? encrypt(order.address_billing.address5) : '',
-        address_billing_address4: order.address_billing.address4 !== '' ? encrypt(order.address_billing.address4) : '',
+        address_billing_phone2: order.address_billing.phone2,
+        address_billing_last_name: order.address_billing.last_name,
+        address_billing_address5: order.address_billing.address5,
+        address_billing_address4: order.address_billing.address4,
         address_billing_first_name: order.address_billing.first_name,
         extra_attributes: order.extra_attributes,
         order_id: order.order_id,
         remarks: order.remarks,
         gift_message: order.gift_message,
         address_shipping_country: order.address_shipping.country,
-        address_shipping_address3: order.address_shipping.address3 !== '' ? encrypt(order.address_shipping.address3) : '',
-        address_shipping_phone: order.address_shipping.phone !== '' ? encrypt(order.address_shipping.phone) :'',
-        address_shipping_address2: order.address_shipping.address2 !== '' ? encrypt(order.address_shipping.address2) : '',
+        address_shipping_address3: order.address_shipping.address3,
+        address_shipping_phone: order.address_shipping.phone,
+        address_shipping_address2: order.address_shipping.address2,
         address_shipping_city: order.address_shipping.city,
-        address_shipping_address1: order.address_shipping.address1 !== '' ? encrypt(order.address_shipping.address1) : '',
+        address_shipping_address1: order.address_shipping.address1,
         address_shipping_post_code: order.address_shipping.post_code,
-        address_shipping_phone2: order.address_shipping.phone2 !== '' ? encrypt(order.address_shipping.phone2) : '',
-        address_shipping_last_name: order.address_shipping.last_name !== '' ? encrypt(order.address_shipping.last_name) : '',
-        address_shipping_address5: order.address_shipping.address5 !== '' ? encrypt(order.address_shipping.address5) : '',
-        address_shipping_address4: order.address_shipping.address4 !== '' ? encrypt(order.address_shipping.address4) : '',
+        address_shipping_phone2: order.address_shipping.phone2,
+        address_shipping_last_name: order.address_shipping.last_name,
+        address_shipping_address5: order.address_shipping.address5,
+        address_shipping_address4: order.address_shipping.address4,
         address_shipping_first_name: order.address_shipping.first_name,
         market: contents.country
     }
@@ -658,7 +622,7 @@ const databaseOrderEdit = (order, callback) => {
         "${order.national_registration_number}",
         ${Number(order.shipping_fee_original)},
         "${order.payment_method}",
-        "${order.customer_first_name !== ''? encrypt(order.customer_first_name) :''}",
+        "${order.customer_first_name}",
         "${order.shipping_fee_discount_seller}",
         ${Number(order.shipping_fee)},
         "${order.branch_number}",
@@ -667,32 +631,32 @@ const databaseOrderEdit = (order, callback) => {
         "${order.delivery_info}",
         "${order.statuses.join()}",
         "${order.address_billing.country}",
-        "${order.address_billing.address3 !== '' ? encrypt(order.address_billing.address3) : ''}",
-        "${order.address_billing.phone !== '' ? encrypt(order.address_billing.phone) : ''}",
-        "${order.address_billing.address2 !== '' ? encrypt(order.address_billing.address2) : ''}",
+        "${order.address_billing.address3}",
+        "${order.address_billing.phone}",
+        "${order.address_billing.address2}",
         "${order.address_billing.city}",
-        "${order.address_billing.address1 !== '' ? encrypt(order.address_billing.address1) : ''}",
+        "${order.address_billing.address1}",
         "${order.address_billing.post_code}",
-        "${order.address_billing.phone2 !== '' ? encrypt(order.address_billing.phone2) : ''}",
-        "${order.address_billing.last_name !== '' ? encrypt(order.address_billing.last_name) : ''}",
-        "${order.address_billing.address5 !== '' ? encrypt(order.address_billing.address5) : ''}",
-        "${order.address_billing.address4 !== '' ? encrypt(order.address_billing.address4) : ''}",
+        "${order.address_billing.phone2}",
+        "${order.address_billing.last_name}",
+        "${order.address_billing.address5}",
+        "${order.address_billing.address4}",
         "${order.address_billing.first_name}",
         "${order.extra_attributes.replace(/"/g, '\\"')}",
         "${order.order_id}",
         "${order.remarks}",
         "${order.gift_message}",
         "${order.address_shipping.country}",
-        "${order.address_shipping.address3 !== '' ? encrypt(order.address_shipping.address3) : ''}",
-        "${order.address_shipping.phone !== '' ? encrypt(order.address_shipping.phone) : ''}",
-        "${order.address_shipping.address2 !== '' ? encrypt(order.address_shipping.address2) : ''}",
+        "${order.address_shipping.address3}",
+        "${order.address_shipping.phone}",
+        "${order.address_shipping.address2}",
         "${order.address_shipping.city}",
-        "${order.address_shipping.address1 !== '' ? encrypt(order.address_shipping.address1) : ''}",
+        "${order.address_shipping.address1}",
         "${order.address_shipping.post_code}",
-        "${order.address_shipping.phone2 !== ''? encrypt(order.address_shipping.phone2) : ''}",
-        "${order.address_shipping.last_name !== '' ? encrypt(order.address_shipping.last_name) : ''}",
-        "${order.address_shipping.address5 !== '' ? encrypt(order.address_shipping.address5) : ''}",
-        "${order.address_shipping.address4 !== '' ? encrypt(order.address_shipping.address4) : ''}",
+        "${order.address_shipping.phone2}",
+        "${order.address_shipping.last_name}",
+        "${order.address_shipping.address5}",
+        "${order.address_shipping.address4}",
         "${order.address_shipping.first_name}",
         "${contents.country}"
     ) ON DUPLICATE KEY UPDATE
@@ -711,7 +675,7 @@ const databaseOrderEdit = (order, callback) => {
         national_registration_number = "${order.national_registration_number}",
         shipping_fee_original = ${Number(order.shipping_fee_original)},
         payment_method = "${order.payment_method}", 
-        customer_first_name = "${order.customer_first_name !== '' ? encrypt(order.customer_first_name) :''}",
+        customer_first_name = "${order.customer_first_name}",
         shipping_fee_discount_seller = "${order.shipping_fee_discount_seller}",
         shipping_fee = ${Number(order.shipping_fee)},
         branch_number = "${order.branch_number}",
@@ -720,30 +684,30 @@ const databaseOrderEdit = (order, callback) => {
         delivery_info = "${order.delivery_info}",
         statuses = "${order.statuses.join()}",
         address_billing_country = "${order.address_billing.country}",
-        address_billing_address3 = "${order.address_billing.address3 !== '' ? encrypt(order.address_billing.address3) : ''}",
-        address_billing_phone = "${order.address_billing.phone !== '' ? encrypt(order.address_billing.phone) : ''}",
-        address_billing_address2 = "${order.address_billing.address2 !== '' ? encrypt(order.address_billing.address2) : ''}",
+        address_billing_address3 = "${order.address_billing.address3}",
+        address_billing_phone = "${order.address_billing.phone}",
+        address_billing_address2 = "${order.address_billing.address2}",
         address_billing_city = "${order.address_billing.city}",
-        address_billing_address1 = "${order.address_billing.address1 !== '' ? encrypt(order.address_billing.address1) : ''}",
+        address_billing_address1 = "${order.address_billing.address1}",
         address_billing_post_code = "${order.address_billing.post_code}",
-        address_billing_phone2 = "${order.address_billing.phone2 !== '' ? encrypt(order.address_billing.phone2) : ''}",
-        address_billing_last_name = "${order.address_billing.last_name !== '' ? encrypt(order.address_billing.last_name) : ''}",
-        address_billing_address5 = "${ order.address_billing.address5 !== '' ? encrypt(order.address_billing.address5) : ''}",
-        address_billing_address4 = "${order.address_billing.address4 !== '' ? encrypt(order.address_billing.address4) : ''}",
+        address_billing_phone2 = "${order.address_billing.phone2}",
+        address_billing_last_name = "${order.address_billing.last_name}",
+        address_billing_address5 = "${ order.address_billing.address5}",
+        address_billing_address4 = "${order.address_billing.address4}",
         address_billing_first_name = "${order.address_billing.first_name}",
         remarks = "${order.remarks}",
         gift_message = "${order.gift_message}",
         address_shipping_country = "${order.address_shipping.country}",
-        address_shipping_address3 = "${order.address_shipping.address3 !== '' ? encrypt(order.address_shipping.address3) : ''}",
-        address_shipping_phone = "${order.address_shipping.phone !== '' ? encrypt(order.address_shipping.phone) : ''}",
-        address_shipping_address2 = "${order.address_shipping.address2 !=='' ? encrypt(order.address_shipping.address2) : ''}",
+        address_shipping_address3 = "${order.address_shipping.address3}",
+        address_shipping_phone = "${order.address_shipping.phone}",
+        address_shipping_address2 = "${order.address_shipping.address2}",
         address_shipping_city = "${order.address_shipping.city}",
-        address_shipping_address1 = "${order.address_shipping.address1 !== '' ? encrypt(order.address_shipping.address1) : ''}",
+        address_shipping_address1 = "${order.address_shipping.address1}",
         address_shipping_post_code = "${order.address_shipping.post_code}",
-        address_shipping_phone2 = "${order.address_shipping.phone2 !== '' ? encrypt(order.address_shipping.phone2) :''}",
-        address_shipping_last_name = "${order.address_shipping.last_name !== '' ? encrypt(order.address_shipping.last_name) :''}",
-        address_shipping_address5 = "${order.address_shipping.address5 !== '' ? encrypt(order.address_shipping.address5) : ''}",
-        address_shipping_address4 = "${order.address_shipping.address4 !== '' ? encrypt(order.address_shipping.address4) : ''}",
+        address_shipping_phone2 = "${order.address_shipping.phone2}",
+        address_shipping_last_name = "${order.address_shipping.last_name}",
+        address_shipping_address5 = "${order.address_shipping.address5}",
+        address_shipping_address4 = "${order.address_shipping.address4}",
         address_shipping_first_name = "${order.address_shipping.first_name}",
         market = "${contents.country}"
     `,
@@ -1018,7 +982,6 @@ const connectionClose = (callback,bool) => {
         console.log(insertData.createOrder.length, insertData.createOrderDetails.length, insertData.updateOrder.length, insertData.updateOrderDetails.length);
         console.log(new Date() + ' 종료');
         console.log('=====================================================================');
-        console.timeEnd();
 
         if ( bool ) {
             closing();
@@ -1033,7 +996,6 @@ const worker = async (sync,callback,bool) => {
         
         console.log('=====================================================================');
         console.log(new Date() + ' 시작');
-        console.time();
 
         // insertData 초기화
         insertData.createOrder = [];
