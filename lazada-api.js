@@ -1,9 +1,11 @@
 const config = require('../config');
 const env = require('./env').env;
 const pool = require('./connection-pool').createPool(config[env].database);
-const error_hook = require('./slack-lazada-order');
+const error_hook = require('./slackhook');
 const crypto = require('crypto');
 const axios = require('axios');
+const dateformat = require('dateformat');
+const status = require('./env');
 
 const syncData = { 
     app_key: '',
@@ -64,37 +66,40 @@ const signature = (sign_format) => {
 
 const lastCreateTimeTo = () => {
     return new Promise((resolve,reject) => {
-        
-        execute(`SELECT time_to 
-            FROM app_lazada_api_history 
-            WHERE country="${contents.country}" ORDER BY api_history_id DESC LIMIT 0,1`, 
-            (err,rows) => {
+
+        if ( status.process == 'maunal' ) {
+
+            contents.after = status.after; 
+            contents.before = status.before;
+            resolve();
+        } else if ( status.process == 'auto' ) {
+            
+            execute(`SELECT time_to 
+                FROM app_lazada_api_history 
+                WHERE country="${contents.country}" ORDER BY api_history_id DESC LIMIT 0,1`, 
+                (err,rows) => {
 
                 if (err) {
                     throw err;
                 } else {
 
                     let now = new Date();
-                    let time = now.getTime().toString();
-                    let time_result = Number(time.substr(0, time.length - 3));
+                    let time = dateformat(now,`yyyy-mm-dd'T'HH:MM:ss+09:00`);
 
                     if ( rows.length >= 1 ) {
 
                         let after = rows[0].time_to;
-
                         // after(이상) ... before(미만) 
                         contents.after = after; 
-                        contents.before = new Date(Number((time_result) + '000')).toISOString();
+                        contents.before = time;
                         resolve();
-
                     } else {
-                        contents.after = new Date(Number((time_result - 86400) + '000')).toISOString(); // DB 값이 없을 경우, 현재 시점에서 24시간 이전 주문부터 취합
-                        contents.before = new Date(Number((time_result) + '000')).toISOString();
-                        resolve();
 
+                        resolve();
                     }
                 }
-        })
+            })
+        }
     })
 }
 
@@ -109,7 +114,7 @@ const createOrder = () => {
         let created_before = contents.before;
         let offset = 0;
         let limit = 100;
-    
+
         const getOrder = () => {
      
             let sign_format = `/orders/getaccess_token${access_token}app_key${app_key}created_after${created_after}created_before${created_before}limit${limit}offset${offset}sign_method${sign_method}timestamp${timestamp}`;
@@ -133,7 +138,7 @@ const createOrder = () => {
                 }
 
             }).then((response) => {
-                
+
                 let count = response.data.data.count;
                 let count_total = response.data.data.countTotal;
 
@@ -172,7 +177,7 @@ const createOrderDetails = () => {
         let sign_method = "sha256";
         let order_count = contents.order_ids.length;
         let offset = 0;
-        let limit = 100;
+        let limit = 50;
         let start = 0;
         let end = start + limit;
 
@@ -232,7 +237,7 @@ const createOrderDetails = () => {
 
 const updateOrder = () => {
     return new Promise((resolve,reject) => {
-
+        
         contents.order_ids = []; // order_ids 초기화
         let app_key = syncData.app_key;
         let access_token = syncData.access_token;
@@ -304,7 +309,7 @@ const updateOrderDetails = () => {
         let order_count = contents.order_ids.length;
 
         let offset = 0;
-        let limit = 100;
+        let limit = 50;
         let start = 0;
         let end = start + limit;
 
@@ -367,7 +372,7 @@ const updateOrderDetails = () => {
 
 const databaseOrderInsert = (order, callback) => {
 
-    // order
+    // order insert
     const tomodel_order = {
         voucher_platform: order.voucher_platform,
         voucher: order.voucher,
@@ -398,7 +403,7 @@ const databaseOrderInsert = (order, callback) => {
         address_billing_phone: order.address_billing.phone,
         address_billing_address2: order.address_billing.address2,
         address_billing_city: order.address_billing.city,
-        address_billing_address1: order.address_billing.address1,
+        address_billing_address1: order.address_billing.address1.replace(/"/g, '\\"'),
         address_billing_post_code: order.address_billing.post_code,
         address_billing_phone2: order.address_billing.phone2,
         address_billing_last_name: order.address_billing.last_name,
@@ -414,7 +419,7 @@ const databaseOrderInsert = (order, callback) => {
         address_shipping_phone: order.address_shipping.phone,
         address_shipping_address2: order.address_shipping.address2,
         address_shipping_city: order.address_shipping.city,
-        address_shipping_address1: order.address_shipping.address1,
+        address_shipping_address1: order.address_shipping.address1.replace(/"/g, '\\"'),
         address_shipping_post_code: order.address_shipping.post_code,
         address_shipping_phone2: order.address_shipping.phone2,
         address_shipping_last_name: order.address_shipping.last_name,
@@ -428,7 +433,7 @@ const databaseOrderInsert = (order, callback) => {
     (err,rows)=>{
         if ( err ) {
             error_hook(contents.country,err,(e,res) => {
-                console.log("OrderInsert", err)
+                console.log("OrderInsert 에러", err)
                 throw err;
             });
         } else {
@@ -454,7 +459,7 @@ const insertOrder = () => {
 
 const databaseOrderDetailsInsert = (details, callback) => {
 
-    //order_details
+    //order_details insert
     const tomodel_order_details = {
         tax_amount: details.tax_amount,
         reason: details.reason,
@@ -520,7 +525,7 @@ const databaseOrderDetailsInsert = (details, callback) => {
     (err,rows)=>{
         if ( err ) {
             error_hook(contents.country,err,(e,res) => {
-                console.log("OrderDetailsInsert", err)
+                console.log("OrderDetailsInsert 에러", err)
                 throw err;
             });
         } else {
@@ -547,7 +552,7 @@ const insertOrderDetails = () => {
 
 const databaseOrderEdit = (order, callback) => {
 
-    // order
+    // order update 
     execute(`INSERT INTO app_lazada_order
     (
         voucher_platform,
@@ -635,7 +640,7 @@ const databaseOrderEdit = (order, callback) => {
         "${order.address_billing.phone}",
         "${order.address_billing.address2}",
         "${order.address_billing.city}",
-        "${order.address_billing.address1}",
+        "${order.address_billing.address1.replace(/"/g, '\\"')}",
         "${order.address_billing.post_code}",
         "${order.address_billing.phone2}",
         "${order.address_billing.last_name}",
@@ -651,7 +656,7 @@ const databaseOrderEdit = (order, callback) => {
         "${order.address_shipping.phone}",
         "${order.address_shipping.address2}",
         "${order.address_shipping.city}",
-        "${order.address_shipping.address1}",
+        "${order.address_shipping.address1.replace(/"/g, '\\"')}",
         "${order.address_shipping.post_code}",
         "${order.address_shipping.phone2}",
         "${order.address_shipping.last_name}",
@@ -688,7 +693,7 @@ const databaseOrderEdit = (order, callback) => {
         address_billing_phone = "${order.address_billing.phone}",
         address_billing_address2 = "${order.address_billing.address2}",
         address_billing_city = "${order.address_billing.city}",
-        address_billing_address1 = "${order.address_billing.address1}",
+        address_billing_address1 = "${order.address_billing.address1.replace(/"/g, '\\"')}",
         address_billing_post_code = "${order.address_billing.post_code}",
         address_billing_phone2 = "${order.address_billing.phone2}",
         address_billing_last_name = "${order.address_billing.last_name}",
@@ -702,7 +707,7 @@ const databaseOrderEdit = (order, callback) => {
         address_shipping_phone = "${order.address_shipping.phone}",
         address_shipping_address2 = "${order.address_shipping.address2}",
         address_shipping_city = "${order.address_shipping.city}",
-        address_shipping_address1 = "${order.address_shipping.address1}",
+        address_shipping_address1 = "${order.address_shipping.address1.replace(/"/g, '\\"')}",
         address_shipping_post_code = "${order.address_shipping.post_code}",
         address_shipping_phone2 = "${order.address_shipping.phone2}",
         address_shipping_last_name = "${order.address_shipping.last_name}",
@@ -740,7 +745,7 @@ const editOrder = () => {
 
 const databaseOrderDetailsEdit = (details, callback) => {
 
-    //order Details
+    // order_details update
     execute(`INSERT INTO app_lazada_order_details
         (
             tax_amount,
@@ -979,7 +984,7 @@ const timeSave = () => {
 const connectionClose = (callback,bool) => {
     return new Promise((resolve,reject) => {
 
-        console.log(insertData.createOrder.length, insertData.createOrderDetails.length, insertData.updateOrder.length, insertData.updateOrderDetails.length);
+        console.log(contents.country, insertData.createOrder.length, insertData.createOrderDetails.length, insertData.updateOrder.length, insertData.updateOrderDetails.length);
         console.log(new Date() + ' 종료');
         console.log('=====================================================================');
 
