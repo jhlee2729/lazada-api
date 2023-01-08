@@ -390,7 +390,7 @@ const databaseOrderInsert = (order, callback) => {
         national_registration_number: order.national_registration_number,
         shipping_fee_original: Number(order.shipping_fee_original),
         payment_method: order.payment_method,
-        customer_first_name: order.customer_first_name,
+        customer_first_name: order.customer_first_name.replace(/\\/g, ''),
         shipping_fee_discount_seller: order.shipping_fee_discount_seller,
         shipping_fee: Number(order.shipping_fee),
         branch_number: order.branch_number,
@@ -409,7 +409,7 @@ const databaseOrderInsert = (order, callback) => {
         address_billing_last_name: order.address_billing.last_name,
         address_billing_address5: order.address_billing.address5,
         address_billing_address4: order.address_billing.address4,
-        address_billing_first_name: order.address_billing.first_name,
+        address_billing_first_name: order.address_billing.first_name.replace(/\\/g, ''),
         extra_attributes: order.extra_attributes,
         order_id: order.order_id,
         remarks: order.remarks,
@@ -425,7 +425,7 @@ const databaseOrderInsert = (order, callback) => {
         address_shipping_last_name: order.address_shipping.last_name,
         address_shipping_address5: order.address_shipping.address5,
         address_shipping_address4: order.address_shipping.address4,
-        address_shipping_first_name: order.address_shipping.first_name,
+        address_shipping_first_name: order.address_shipping.first_name.replace(/\\/g, ''),
         market: contents.country
     }
 
@@ -627,7 +627,7 @@ const databaseOrderEdit = (order, callback) => {
         "${order.national_registration_number}",
         ${Number(order.shipping_fee_original)},
         "${order.payment_method}",
-        "${order.customer_first_name}",
+        "${order.customer_first_name.replace(/\\/g, '')}",
         "${order.shipping_fee_discount_seller}",
         ${Number(order.shipping_fee)},
         "${order.branch_number}",
@@ -646,7 +646,7 @@ const databaseOrderEdit = (order, callback) => {
         "${order.address_billing.last_name}",
         "${order.address_billing.address5}",
         "${order.address_billing.address4}",
-        "${order.address_billing.first_name}",
+        "${order.address_billing.first_name.replace(/\\/g, '')}",
         "${order.extra_attributes.replace(/"/g, '\\"')}",
         "${order.order_id}",
         "${order.remarks}",
@@ -662,7 +662,7 @@ const databaseOrderEdit = (order, callback) => {
         "${order.address_shipping.last_name}",
         "${order.address_shipping.address5}",
         "${order.address_shipping.address4}",
-        "${order.address_shipping.first_name}",
+        "${order.address_shipping.first_name.replace(/\\/g, '')}",
         "${contents.country}"
     ) ON DUPLICATE KEY UPDATE
         voucher_platform = "${order.voucher_platform}",
@@ -680,7 +680,7 @@ const databaseOrderEdit = (order, callback) => {
         national_registration_number = "${order.national_registration_number}",
         shipping_fee_original = ${Number(order.shipping_fee_original)},
         payment_method = "${order.payment_method}", 
-        customer_first_name = "${order.customer_first_name}",
+        customer_first_name = "${order.customer_first_name.replace(/\\/g, '')}",
         shipping_fee_discount_seller = "${order.shipping_fee_discount_seller}",
         shipping_fee = ${Number(order.shipping_fee)},
         branch_number = "${order.branch_number}",
@@ -699,7 +699,7 @@ const databaseOrderEdit = (order, callback) => {
         address_billing_last_name = "${order.address_billing.last_name}",
         address_billing_address5 = "${ order.address_billing.address5}",
         address_billing_address4 = "${order.address_billing.address4}",
-        address_billing_first_name = "${order.address_billing.first_name}",
+        address_billing_first_name = "${order.address_billing.first_name.replace(/\\/g, '')}",
         remarks = "${order.remarks}",
         gift_message = "${order.gift_message}",
         address_shipping_country = "${order.address_shipping.country}",
@@ -713,7 +713,7 @@ const databaseOrderEdit = (order, callback) => {
         address_shipping_last_name = "${order.address_shipping.last_name}",
         address_shipping_address5 = "${order.address_shipping.address5}",
         address_shipping_address4 = "${order.address_shipping.address4}",
-        address_shipping_first_name = "${order.address_shipping.first_name}",
+        address_shipping_first_name = "${order.address_shipping.first_name.replace(/\\/g, '')}",
         market = "${contents.country}"
     `,
 
